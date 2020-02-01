@@ -1,0 +1,426 @@
+Resources:
+  # EC2-SecurityGroup
+   # SgKobetsuDevAwsTrialNishiyama0001
+  SgKobetsuDevAwsTrialNishiyama0001:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: dev-aws-trial-nishiyama
+      VpcId: vpc-0a232d88c74af4072
+      GroupDescription: Develop--infra
+  SgKobetsuDevAwsTrialNishiyama0001Ingress1:           # Inbound Rule1 for   SgKobetsuDevAwsTrialNishiyama0001:   : Allow All Protocol from   SgKobetsuDevAwsTrialNishiyama0001:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: -1
+      SourceSecurityGroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+      GroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+  SgKobetsuDevAwsTrialNishiyama0001Ingress2:           # Inbound Rule2 for   SgKobetsuDevAwsTrialNishiyama0001:   : Allow All Protocol from   SgKobetsuDevAwsTrialNishiyama0001:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+      GroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+  SgKobetsuDevAwsTrialNishiyama0001Egress1:           # Outgoing Rule1 for   SgKobetsuDevAwsTrialNishiyama0001:   : Allow All Protocol from   SgKobetsuDevAwsTrialNishiyama0001:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      IpProtocol: -1
+      DestinationSecurityGroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+      GroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+
+  # EC2-Instance 
+   #　EC2 dev-aws-trial-nishiyama0001
+  Ec2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      BlockDeviceMappings: ##複数EBSには未対応
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 30
+      IamInstanceProfile: ''
+      KeyName: yasukey
+      ImageId: ami-0905585aabbf6422e
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref SgKobetsuDevAwsTrialNishiyama0001
+        - sg-0051c3d00608fa23f
+        - sg-07cb3028268f155e0
+      SubnetId: subnet-0ed5efc455b8bdebb
+      UserData:
+        Fn::Base64: !Sub hostname=dev-aws-trial-nishiyama0001,group=dev-aws-trial-nishiyama,service=yasu-infra
+      Tags:
+        - Key: ELB
+          Value: dev-aws-trial-nishiyama-ex-clb
+        - Key: Group
+          Value: dev-aws-trial-nishiyama
+        - Key: Name
+          Value: dev-aws-trial-nishiyama0001
+        - Key: Service
+          Value: yasu-infra
+
+  #Route53
+   ## dev-aws-trial-nishiyama-0001.aws.cloud.idc.local.
+  R53ARecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: Z0091823151YIMMYWYE9K
+      Name: dev-aws-trial-nishiyama0001.yasu.local.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt 
+          - Ec2
+          - PrivateIp
+
+   ## dev-aws-trial-nishiyama-001.aws.cloud.idc.local.
+  R53Alias1:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: Z0091823151YIMMYWYE9K
+      Name: dev-aws-trial-nishiyama001.yasu.local.
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z0091823151YIMMYWYE9K
+        DNSName: dev-aws-trial-nishiyama0001.yasu.local.
+
+   ## aws-trial-nishiyama-0001.aws.cloud.idc.local.
+  R53Alias2:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: Z0091823151YIMMYWYE9K
+      Name: aws-trial-nishiyama0001.yasu.local.
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z0091823151YIMMYWYE9K
+        DNSName: dev-aws-trial-nishiyama0001.yasu.local.
+
+   ## aws-trial-nishiyama-001.aws.cloud.idc.local.
+  R53Alias3:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: Z0091823151YIMMYWYE9K
+      Name: aws-trial-nishiyama001.yasu.local.
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z0091823151YIMMYWYE9K
+        DNSName: dev-aws-trial-nishiyama0001.yasu.local.
+
+  # ELB-SecurityGroup
+   # ClbDevAwsTrialNishiyamaExClb
+  ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: ELB-dev-aws-trial-nishiyama
+      VpcId: vpc-0a232d88c74af4072
+      GroupDescription: Develop--infra
+  ClbDevAwsTrialNishiyamaExClbIngress1:           # Inbound Rule1 for   ClbDevAwsTrialNishiyamaExClb:   : Allow All Protocol from   ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 1.1.1.1/32
+      GroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+  ClbDevAwsTrialNishiyamaExClbIngress2:           # Inbound Rule2 for   ClbDevAwsTrialNishiyamaExClb:   : Allow All Protocol from   ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 1.1.1.1/32
+      GroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+  ClbDevAwsTrialNishiyamaExClbIngress3:           # Inbound Rule3 for   ClbDevAwsTrialNishiyamaExClb:   : Allow All Protocol from   ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 2.2.2.2/32
+      GroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+  ClbDevAwsTrialNishiyamaExClbIngress4:           # Inbound Rule4 for   ClbDevAwsTrialNishiyamaExClb:   : Allow All Protocol from   ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 2.2.2.2/32
+      GroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+  ClbDevAwsTrialNishiyamaExClbEgress1:           # Outgoing Rule1 for   ClbDevAwsTrialNishiyamaExClb:   : Allow All Protocol from   ClbDevAwsTrialNishiyamaExClb:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !GetAtt
+        - SgKobetsuDevAwsTrialNishiyama0001
+        - GroupId
+      GroupId: !GetAtt
+        - ClbDevAwsTrialNishiyamaExClb
+        - GroupId
+
+  # TargetGroup
+   # TG 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  # ALB
+   # ALB dev-aws-trial-nishiyama-ex-clb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  # Listener（HTTP)
+   # LnDevAwsTrialNishiyamaExClbHTTP:
+
+
+
+
+
+
+
+
+
+
+  # Listener（HTTPS)
+   # LnDevAwsTrialNishiyamaExClbHTTPS:
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"  Ln"&SUBSTITUTE(PROPER(サーバ情報!K45),"-","")&"HTTPS:","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"    Type: 'AWS::ElasticLoadBalancingV2::Listener'","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"    Properties:","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"      Certificates:","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"        - CertificateArn: "&サーバ情報!K52,"")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"      DefaultActions:","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"        - Type: "&サーバ情報!T49,"")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"          TargetGroupArn: !Ref "&SUBSTITUTE(SUBSTITUTE((A185),":",""),"  ",""),"")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"      LoadBalancerArn: !Ref "&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(PROPER(サーバ情報!K45),"-",""),"Dev",""),"Ver",""),"Pro",""),"")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"      Port: 443","")
+#=IF(AND(サーバ情報!K46<>"",サーバ情報!K51="HTTPS"),"      Protocol: HTTPS","")
+
+  # CLB
+   # CLB dev-aws-trial-nishiyama-ex-clb
+  AwsTrialNishiyamaExClb:
+    Type: 'AWS::ElasticLoadBalancing::LoadBalancer'
+    Properties:
+      AccessLoggingPolicy:
+        Enabled: FALSE
+
+
+      ConnectionDrainingPolicy:
+         Enabled: TRUE
+         Timeout: 300
+      ConnectionSettings:
+         IdleTimeout: 60
+      CrossZone: TRUE
+      HealthCheck:
+         HealthyThreshold: 2
+         Interval: 30
+         Target: HTTP:80/index.html
+         Timeout: 5
+         UnhealthyThreshold: 2
+      Instances:
+        - !Ref Ec2
+      Listeners: #(HTTP)
+        - InstancePort: 80
+          LoadBalancerPort: 80
+          Protocol: HTTP
+          InstanceProtocol: HTTP
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"      Listeners: #(HTTPS)","")
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"        - InstancePort: 80","")
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"          LoadBalancerPort: 443","")
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"          Protocol: HTTPS","")
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"          InstanceProtocol: HTTP","")
+#=IF(AND(サーバ情報!K46="",サーバ情報!K51="HTTPS"),"          SSLCertificateId: "&サーバ情報!K57,"")
+      LoadBalancerName: dev-aws-trial-nishiyama-ex-clb
+      Scheme: internet-facing
+      SecurityGroups:
+        - sg-0051c3d00608fa23f
+        - sg-07cb3028268f155e0
+        - !Ref  ClbDevAwsTrialNishiyamaExClb
+      Subnets:
+        - subnet-0ed5efc455b8bdebb
+        - subnet-06dcdd455a03dfdcb
+      Tags:
+        - Key: Group
+          Value: dev-aws-trial-nishiyama-ex-clb
+        - Key: Service
+          Value: yasu-infra
+        - Key: Name
+          Value: dev-aws-trial-nishiyama-ex-clb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
